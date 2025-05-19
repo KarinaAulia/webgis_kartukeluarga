@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebGIS Kartu Keluarga Kurang Mampu</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    #map { height: 85vh; width: 100%; }
+    .popup-form { font-size: 14px; }
+    .popup-form input { width: 100%; margin-bottom: 4px; }
+    .popup-buttons button { margin: 2px; }
+    .marker-label {
+      background: none;
+      border: none;
+      font-weight: bold;
+      color: #2c3e50;
+      text-shadow: 1px 1px white;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 2% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-height: 90%;
+      overflow-y: auto;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover {
+      color: black;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .family-member {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #f9f9f9;
+    }
+    .action-buttons {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .action-buttons button {
+      padding: 8px 16px;
+      margin: 0 5px;
+    }
+    .view-details-button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+<h2 style="text-align: center;">WebGIS Kartu Keluarga Kurang Mampu</h2>
+<div id="map"></div>
+
+<!-- Modal for adding/editing KK -->
+<div id="kkModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2 id="modalTitle">Tambah Data Kartu Keluarga</h2>
+    
+    <form id="kkForm">
+      <input type="hidden" id="markerId" value="">
+      <input type="hidden" id="markerLat" value="">
+      <input type="hidden" id="markerLng" value="">
+      
+      <div class="form-group">
+        <label for="noKK">Nomor Kartu Keluarga:</label>
+        <input type="text" id="noKK" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="alamat">Alamat:</label>
+        <input type="text" id="alamat" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="wa">Nomor WhatsApp:</label>
+        <input type="text" id="wa" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="jmlAnggota">Jumlah Anggota Keluarga:</label>
+        <input type="number" id="jmlAnggota" min="1" required>
+        <button type="button" id="generateAnggota">Generate Form Anggota</button>
+      </div>
+      
+      <div id="anggotaContainer"></div>
+      
+      <div class="action-buttons">
+        <button type="button" id="saveKK">Simpan</button>
+        <button type="button" id="cancelKK">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal for viewing KK details -->
+<div id="viewModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>Detail Kartu Keluarga</h2>
+    <div id="kkDetails"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+// Inisialisasi map
+const map = L.map('map').setView([-0.0201, 109.3426], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+let markers = [];
+let markerId = 0;
+let currentMarker = null;
+
+// Get modals
+const kkModal = document.getElementById('kkModal');
+const viewModal = document.getElementById('viewModal');
+const closeButtons = document.getElementsByClassName('close');
+
+// Close modal when clicking on X
+for (let i = 0; i < closeButtons.length; i++) {
+  closeButtons[i].onclick = function() {
+    kkModal.style.display = "none";
+    viewModal.style.display = "none";
+  }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  if (event.target === kkModal) {
+    kkModal.style.display = "none";
+  }
+  if (event.target === viewModal) {
+    viewModal.style.display = "none";
+  }
+}
+
+// Ambil semua marker dari database saat load
+fetch('get_markers.php')
+  .then(res => res.json())
+  .then(data => {
+    data.forEach(m => {
+      addMarkerFromDB(m);
+    });
+  })
+  .catch(err => console.error("Error loading data:", err));
+
+// Tambahkan Circle (contoh area sasaran program bantuan)
+const circle = L.circle([-0.0282, 109.3497], {
+  color: 'red',
+  fillColor: '#f03',
+  fillOpacity: 0.5,
+  radius: 500
+}).addTo(map).bindPopup('Area Sasaran Bantuan');
+
+// Tambahkan Polygon (contoh batas administrasi)
+const polygon = L.polygon([
+  [-0.01815, 109.33978],
+  [-0.02176, 109.29635],
+  [-0.04510, 109.31970]
+]).addTo(map).bindPopup('Batas Administrasi');
+
+// Klik di map untuk tambah marker
+map.on('click', function(e) {
+  const latlng = e.latlng;
+  
+  // Reset form
+  document.getElementById('kkForm').reset();
+  document.getElementById('anggotaContainer').innerHTML = '';
+  document.getElementById('modalTitle').textContent = 'Tambah Data Kartu Keluarga';
+  
+  // Set latitude dan longitude
+  document.getElementById('markerLat').value = latlng.lat;
+  document.getElementById('markerLng').value = latlng.lng;
+  document.getElementById('markerId').value = '';
+  
+  // Show modal
+  kkModal.style.display = "block";
+});
+
+// Generate form anggota keluarga
+document.getElementById('generateAnggota').addEventListener('click', function() {
+  const jmlAnggota = parseInt(document.getElementById('jmlAnggota').value);
+  const container = document.getElementById('anggotaContainer');
+  
+  if (isNaN(jmlAnggota) || jmlAnggota < 1) {
+    alert('Jumlah anggota keluarga harus minimal 1');
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  for (let i = 0; i < jmlAnggota; i++) {
+    const div = document.createElement('div');
+    div.className = 'family-member';
+    div.innerHTML = `
+      <h3>Anggota Keluarga #${i+1}</h3>
+      
+      <div class="form-group">
+        <label for="nama_${i}">Nama Lengkap:</label>
+        <input type="text" id="nama_${i}" name="nama[]" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="nik_${i}">NIK:</label>
+        <input type="text" id="nik_${i}" name="nik[]" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="jenis_kelamin_${i}">Jenis Kelamin:</label>
+        <select id="jenis_kelamin_${i}" name="jenis_kelamin[]" required>
+          <option value="Laki-laki">Laki-laki</option>
+          <option value="Perempuan">Perempuan</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="agama_${i}">Agama:</label>
+        <select id="agama_${i}" name="agama[]" required>
+          <option value="Islam">Islam</option>
+          <option value="Katolik">Katolik</option>
+          <option value="Kristen">Kristen</option>
+          <option value="Buddha">Buddha</option>
+          <option value="Hindu">Hindu</option>
+          <option value="Konghucu">Konghucu</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="status_${i}">Status:</label>
+        <select id="status_${i}" name="status[]" required>
+          <option value="Kawin">Kawin</option>
+          <option value="Belum Kawin">Belum Kawin</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="pendidikan_${i}">Pendidikan Terakhir:</label>
+        <select id="pendidikan_${i}" name="pendidikan[]" required>
+          <option value="Tidak Sekolah">Tidak Sekolah</option>
+          <option value="SD">SD</option>
+          <option value="SMP">SMP</option>
+          <option value="SMA/SMK">SMA/SMK</option>
+          <option value="D1">D1</option>
+          <option value="D2">D2</option>
+          <option value="D3">D3</option>
+          <option value="S1">S1</option>
+          <option value="S2">S2</option>
+          <option value="S3">S3</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="tempat_lahir_${i}">Tempat Lahir:</label>
+        <input type="text" id="tempat_lahir_${i}" name="tempat_lahir[]" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="tanggal_lahir_${i}">Tanggal Lahir:</label>
+        <input type="date" id="tanggal_lahir_${i}" name="tanggal_lahir[]" required>
+      </div>
+    `;
+    
+    container.appendChild(div);
+  }
+});
+
+// Save KK data
+document.getElementById('saveKK').addEventListener('click', function() {
+  const form = document.getElementById('kkForm');
+  
+  // Validate form
+  if (!form.checkValidity()) {
+    alert("Mohon lengkapi semua data yang diperlukan!");
+    return;
+  }
+  
+  // Get form data
+  const markerId = document.getElementById('markerId').value;
+  const lat = document.getElementById('markerLat').value;
+  const lng = document.getElementById('markerLng').value;
+  const noKK = document.getElementById('noKK').value;
+  const alamat = document.getElementById('alamat').value;
+  const wa = document.getElementById('wa').value;
+  const jmlAnggota = document.getElementById('jmlAnggota').value;
+  
+  // Get family members data
+  const anggotaKeluarga = [];
+  for (let i = 0; i < jmlAnggota; i++) {
+    anggotaKeluarga.push({
+      nama: document.getElementById(`nama_${i}`).value,
+      nik: document.getElementById(`nik_${i}`).value,
+      jenis_kelamin: document.getElementById(`jenis_kelamin_${i}`).value,
+      agama: document.getElementById(`agama_${i}`).value,
+      status: document.getElementById(`status_${i}`).value,
+      pendidikan: document.getElementById(`pendidikan_${i}`).value,
+      tempat_lahir: document.getElementById(`tempat_lahir_${i}`).value,
+      tanggal_lahir: document.getElementById(`tanggal_lahir_${i}`).value
+    });
+  }
+  
+  // Create data object
+  const data = {
+    id: markerId,
+    lat,
+    lng,
+    noKK,
+    alamat,
+    wa,
+    anggotaKeluarga: JSON.stringify(anggotaKeluarga)
+  };
+  
+  // Save to database
+  const formData = new FormData();
+  for (const key in data) {
+    formData.append(key, data[key]);
+  }
+  
+  let url = 'save_marker.php';
+  if (markerId) {
+    url = 'update_marker.php';
+  }
+  
+  fetch(url, {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.text())
+  .then(res => {
+    if (res === "success") {
+      alert("Data berhasil disimpan!");
+      kkModal.style.display = "none";
+      
+      if (markerId) {
+        // Update marker on map
+        const marker = markers.find(m => m.data.id === parseInt(markerId));
+        if (marker) {
+          map.removeLayer(marker);
+          markers = markers.filter(m => m !== marker);
+        }
+      }
+      
+      // Add new marker to map
+      if (markerId) {
+        data.id = parseInt(markerId);
+      }
+      addMarker(parseFloat(lat), parseFloat(lng), data, false);
+      
+      // If adding new, reload all markers to get the DB-assigned ID
+      if (!markerId) {
+        location.reload();
+      }
+    } else {
+      alert("Gagal menyimpan data: " + res);
+    }
+  })
+  .catch(err => {
+    console.error("Error saving data:", err);
+    alert("Terjadi kesalahan saat menyimpan data!");
+  });
+});
+
+// Cancel KK form
+document.getElementById('cancelKK').addEventListener('click', function() {
+  kkModal.style.display = "none";
+});
+
+// Function to add marker from database
+function addMarkerFromDB(data) {
+  const lat = parseFloat(data.lat);
+  const lng = parseFloat(data.lng);
+  addMarker(lat, lng, data, false);
+}
+
+// Function to add marker
+function addMarker(lat, lng, data, saveToDB) {
+  const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+  const id = data.id || ++markerId;
+  
+  // Parse anggotaKeluarga if it's a string
+  let anggotaKeluarga = data.anggotaKeluarga;
+  if (typeof anggotaKeluarga === 'string') {
+    try {
+      anggotaKeluarga = JSON.parse(anggotaKeluarga);
+    } catch (e) {
+      console.error("Error parsing anggotaKeluarga:", e);
+      anggotaKeluarga = [];
+    }
+  }
+  
+  marker.data = {
+    id,
+    noKK: data.noKK,
+    alamat: data.alamat,
+    wa: data.wa,
+    anggotaKeluarga
+  };
+  
+  marker.bindPopup(getPopupContent(marker));
+  
+  marker.bindTooltip(`KK: ${data.noKK}`, {
+    permanent: true,
+    direction: 'top',
+    offset: [0, -10],
+    className: 'marker-label'
+  });
+  
+  // Handle marker drag end
+  marker.on('dragend', function(e) {
+    const position = marker.getLatLng();
+    updateMarkerPosition(marker.data.id, position.lat, position.lng);
+  });
+  
+  markers.push(marker);
+  
+  if (saveToDB) {
+    // This would be handled by the form submit now
+  }
+}
+
+// Update marker position in database
+function updateMarkerPosition(id, lat, lng) {
+  const formData = new FormData();
+  formData.append('id', id);
+  formData.append('lat', lat);
+  formData.append('lng', lng);
+  
+  fetch('update_position.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.text())
+  .then(res => {
+    if (res !== "success") {
+      alert("Gagal memperbarui posisi marker!");
+    }
+  })
+  .catch(err => {
+    console.error("Error updating position:", err);
+    alert("Terjadi kesalahan saat memperbarui posisi!");
+  });
+}
+
+// Function for popup content
+function getPopupContent(marker) {
+  const data = marker.data;
+  
+  return `
+    <div class="popup-form">
+      <h3>Kartu Keluarga: ${data.noKK}</h3>
+      <p>Alamat: ${data.alamat}</p>
+      <p><a href="https://wa.me/${data.wa}" target="_blank">📞 WhatsApp: ${data.wa}</a></p>
+      <p>Jumlah Anggota: ${data.anggotaKeluarga.length}</p>
+      
+      <div class="popup-buttons">
+        <button class="view-details-button" onclick="viewDetails(${data.id})">Lihat Detail</button>
+        <button onclick="editMarker(${data.id})">Edit</button>
+        <button onclick="deleteMarker(${data.id})">Hapus</button>
+      </div>
+    </div>
+  `;
+}
+
+// Function to view KK details
+function viewDetails(id) {
+  const marker = markers.find(m => m.data.id === id);
+  if (!marker) return;
+  
+  const data = marker.data;
+  let htmlContent = `
+    <h3>Kartu Keluarga: ${data.noKK}</h3>
+    <p>Alamat: ${data.alamat}</p>
+    <p>WhatsApp: ${data.wa}</p>
+    <h4>Anggota Keluarga:</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Nama</th>
+          <th>NIK</th>
+          <th>Jenis Kelamin</th>
+          <th>Agama</th>
+          <th>Status</th>
+          <th>Pendidikan</th>
+          <th>Tempat Lahir</th>
+          <th>Tanggal Lahir</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  data.anggotaKeluarga.forEach((anggota, index) => {
+    // Format the date
+    let tanggalLahir = anggota.tanggal_lahir;
+    if (tanggalLahir.includes('-')) {
+      const [year, month, day] = tanggalLahir.split('-');
+      tanggalLahir = `${day}/${month}/${year}`;
+    }
+    
+    htmlContent += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${anggota.nama}</td>
+        <td>${anggota.nik}</td>
+        <td>${anggota.jenis_kelamin}</td>
+        <td>${anggota.agama}</td>
+        <td>${anggota.status}</td>
+        <td>${anggota.pendidikan}</td>
+        <td>${anggota.tempat_lahir}</td>
+        <td>${tanggalLahir}</td>
+      </tr>
+    `;
+  });
+  
+  htmlContent += `
+      </tbody>
+    </table>
+  `;
+  
+  document.getElementById('kkDetails').innerHTML = htmlContent;
+  viewModal.style.display = "block";
+}
+
+// Function to edit marker
+function editMarker(id) {
+  const marker = markers.find(m => m.data.id === id);
+  if (!marker) return;
+  
+  const data = marker.data;
+  const position = marker.getLatLng();
+  
+  // Set form values
+  document.getElementById('markerId').value = data.id;
+  document.getElementById('markerLat').value = position.lat;
+  document.getElementById('markerLng').value = position.lng;
+  document.getElementById('noKK').value = data.noKK;
+  document.getElementById('alamat').value = data.alamat;
+  document.getElementById('wa').value = data.wa;
+  document.getElementById('jmlAnggota').value = data.anggotaKeluarga.length;
+  document.getElementById('modalTitle').textContent = 'Edit Data Kartu Keluarga';
+  
+  // Generate form for family members
+  document.getElementById('generateAnggota').click();
+  
+  // Set values for family members
+  data.anggotaKeluarga.forEach((anggota, index) => {
+    document.getElementById(`nama_${index}`).value = anggota.nama;
+    document.getElementById(`nik_${index}`).value = anggota.nik;
+    document.getElementById(`jenis_kelamin_${index}`).value = anggota.jenis_kelamin;
+    document.getElementById(`agama_${index}`).value = anggota.agama;
+    document.getElementById(`status_${index}`).value = anggota.status;
+    document.getElementById(`pendidikan_${index}`).value = anggota.pendidikan;
+    document.getElementById(`tempat_lahir_${index}`).value = anggota.tempat_lahir;
+    document.getElementById(`tanggal_lahir_${index}`).value = anggota.tanggal_lahir;
+  });
+  
+  // Show modal
+  kkModal.style.display = "block";
+}
+
+// Function to delete marker
+function deleteMarker(id) {
+  if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
+  
+  const marker = markers.find(m => m.data.id === id);
+  if (!marker) return;
+  
+  const formData = new FormData();
+  formData.append('id', id);
+  
+  fetch('delete_marker.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.text())
+  .then(res => {
+    if (res === "success") {
+      map.removeLayer(marker);
+      markers = markers.filter(m => m !== marker);
+      alert("Data berhasil dihapus!");
+    } else {
+      alert("Gagal menghapus data!");
+    }
+  })
+  .catch(err => {
+    console.error("Error deleting marker:", err);
+    alert("Terjadi kesalahan saat menghapus data!");
+  });
+}
+
+// Expose functions to global scope for inline event handlers
+window.viewDetails = viewDetails;
+window.editMarker = editMarker;
+window.deleteMarker = deleteMarker;
+</script>
+
+</body>
+</html>
