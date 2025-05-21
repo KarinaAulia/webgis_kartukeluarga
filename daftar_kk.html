@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar Kartu Keluarga - WebGIS KK Kurang Mampu</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      background-color: #4CAF50;
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 2.2em;
+    }
+    
+    .breadcrumb {
+      margin: 20px 0;
+      font-size: 0.9em;
+    }
+    
+    .breadcrumb a {
+      color: #4CAF50;
+      text-decoration: none;
+    }
+    
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    .content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .title {
+      font-size: 1.8em;
+      margin: 0;
+    }
+    
+    .search-box {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .search-input {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 250px;
+    }
+    
+    .btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.3s;
+    }
+    
+    .btn:hover {
+      background-color: #45a049;
+    }
+    
+    .btn-secondary {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #e4e4e4;
+    }
+    
+    .btn-warning {
+      background-color: #ff9800;
+      color: white;
+    }
+    
+    .btn-warning:hover {
+      background-color: #e68a00;
+    }
+    
+    .btn-danger {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #da190b;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .data-table th {
+      background-color: #f5f5f5;
+      padding: 15px;
+      text-align: left;
+      border-bottom: 2px solid #ddd;
+    }
+    
+    .data-table td {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .data-table tr:hover {
+      background-color: #f9f9f9;
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      gap: 5px;
+    }
+    
+    .page-item {
+      list-style: none;
+    }
+    
+    .page-link {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      background-color: white;
+      color: #333;
+      text-decoration: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .page-link:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .page-link.active {
+      background-color: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.9em;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 50px;
+      padding: 20px;
+      color: #777;
+      font-size: 0.9em;
+      border-top: 1px solid #eee;
+    }
+    
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    
+    .modal-content {
+      background-color: #fefefe;
+      margin: 2% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-height: 90%;
+      overflow-y: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close:hover {
+      color: black;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    /* Loading */
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    
+    .loading-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      text-align: center;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .content-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+      
+      .search-box {
+        width: 100%;
+      }
+      
+      .search-input {
+        flex-grow: 1;
+      }
+      
+      .data-table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <h1>Daftar Kartu Keluarga</h1>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="dashboard.html">Dashboard</a> &gt; Daftar Kartu Keluarga
+    </div>
+    
+    <div class="content-header">
+      <h2 class="title">Data Kartu Keluarga Kurang Mampu</h2>
+      
+      <div class="search-box">
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="search-input" 
+          placeholder="Cari Nomor KK atau Alamat..."
+          onkeyup="filterTable()"
+        >
+        <button class="btn" onclick="showOnMap()">Lihat di Peta</button>
+      </div>
+    </div>
+    
+    <table class="data-table" id="kkTable">
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Nomor KK</th>
+          <th>Alamat</th>
+          <th>WhatsApp</th>
+          <th>Jumlah Anggota</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="kkTableBody">
+        <tr>
+          <td colspan="6" style="text-align: center;">Memuat data...</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <ul class="pagination" id="pagination">
+      <!-- Pagination will be generated with JavaScript -->
+    </ul>
+  </div>
+  
+  <!-- Modal Detail KK -->
+  <div id="detailModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('detailModal')">&times;</span>
+      <h2>Detail Kartu Keluarga</h2>
+      <div id="kkDetails"></div>
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn" onclick="printDetails()">Cetak</button>
+        <button class="btn btn-secondary" onclick="closeModal('detailModal')">Tutup</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Loading indicator -->
+  <div id="loading" class="loading" style="display: none;">
+    <div class="loading-content">
+      <p>Sedang memproses...</p>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <div class="container">
+      <p>© 2025 WebGIS Kartu Keluarga Kurang Mampu. Hak Cipta Dilindungi.</p>
+    </div>
+  </div>
+  
+  <script>
+    let kkData = [];
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    
+    // Load data from API
+    function loadData() {
+      showLoading();
+      fetch('get_markers.php')
+        .then(response => response.json())
+        .then(data => {
+          kkData = data;
+          displayData();
+          hideLoading();
+        })
+        .catch(error => {
+          console.error('Error loading data:', error);
+          alert('Terjadi kesalahan saat memuat data. Silakan coba lagi nanti.');
+          hideLoading();
+          
+          // Sample data for demonstration
+          kkData = [
+            {id: 1, noKK: '1271123456789012', alamat: 'Jl. Merdeka No. 123, Pontianak Selatan', wa: '628123456789', anggotaKeluarga: JSON.stringify([{nama: 'John Doe'}, {nama: 'Jane Doe'}, {nama: 'Baby Doe'}])},
+            {id: 2, noKK: '1271098765432101', alamat: 'Jl. Pahlawan No. 45, Pontianak Barat', wa: '628234567890', anggotaKeluarga: JSON.stringify([{nama: 'Ahmad'}, {nama: 'Siti'}])},
+            {id: 3, noKK: '1271112233445566', alamat: 'Jl. Veteran No. 78, Pontianak Timur', wa: '628345678901', anggotaKeluarga: JSON.stringify([{nama: 'Budi'}, {nama: 'Ani'}, {nama: 'Dani'}, {nama: 'Dina'}])}
+          ];
+          displayData();
+        });
+    }
+    
+    // Display data with pagination
+    function displayData() {
+      const tableBody = document.getElementById('kkTableBody');
+      tableBody.innerHTML = '';
+      
+      // Filter data if search is active
+      const searchInput = document.getElementById('searchInput');
+      const filteredData = filterData(kkData, searchInput.value);
+      
+      // Calculate pagination
+      const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = Math.min(startIndex + rowsPerPage, filteredData.length);
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+      
+      // Create table rows
+      if (paginatedData.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Tidak ada data yang ditemukan</td></tr>';
+      } else {
+        paginatedData.forEach((kk, index) => {
+          // Parse anggotaKeluarga
+          let anggotaKeluarga = [];
+          try {
+            anggotaKeluarga = JSON.parse(kk.anggotaKeluarga);
+          } catch (e) {
+            console.error('Error parsing anggotaKeluarga:', e);
+          }
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${startIndex + index + 1}</td>
+            <td>${kk.noKK}</td>
+            <td>${kk.alamat}</td>
+            <td><a href="https://wa.me/${kk.wa}" target="_blank">${kk.wa}</a></td>
+            <td>${anggotaKeluarga.length}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm" onclick="viewDetails(${kk.id})">Detail</button>
+                <button class="btn btn-warning btn-sm" onclick="editKK(${kk.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteKK(${kk.id})">Hapus</button>
+              </div>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+      
+      // Update pagination
+      createPagination(totalPages);
+    }
+    
+    // Create pagination controls
+    function createPagination(totalPages) {
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      
+      // Previous button
+      const prevLi = document.createElement('li');
+      prevLi.className = 'page-item';
+      const prevLink = document.createElement('a');
+      prevLink.className = 'page-link';
+      prevLink.textContent = '«';
+      prevLink.href = '#';
+      prevLink.onclick = (e) => {
+        e.preventDefault();
+        if (currentPage > 1) {
+          currentPage--;
+          displayData();
+        }
+      };
+      prevLi.appendChild(prevLink);
+      pagination.appendChild(prevLi);
+      
+      // Page numbers
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        const link = document.createElement('a');
+        link.className = 'page-link' + (i === currentPage ? ' active' : '');
+        link.textContent = i;
+        link.href = '#';
+        link.onclick = (e) => {
+          e.preventDefault();
+          currentPage = i;
+          displayData();
+        };
+        li.appendChild(link);
+        pagination.appendChild(li);
+      }
+      
+      // Next button
+      const nextLi = document.createElement('li');
+      nextLi.className = 'page-item';
+      const nextLink = document.createElement('a');
+      nextLink.className = 'page-link';
+      nextLink.textContent = '»';
+      nextLink.href = '#';
+      nextLink.onclick = (e) => {
+        e.preventDefault();
+        if (currentPage < totalPages) {
+          currentPage++;
+          displayData();
+        }
+      };
+      nextLi.appendChild(nextLink);
+      pagination.appendChild(nextLi);
+    }
+    
+    // Filter data based on search input
+    function filterData(data, searchTerm) {
+      if (!searchTerm) return data;
+      
+      searchTerm = searchTerm.toLowerCase();
+      return data.filter(kk => {
+        return kk.noKK.toLowerCase().includes(searchTerm) || 
+               kk.alamat.toLowerCase().includes(searchTerm);
+      });
+    }
+    
+    // Filter table based on search input
+    function filterTable() {
+      currentPage = 1; // Reset to first page
+      displayData();
+    }
+    
+    // View KK details
+    function viewDetails(id) {
+      const kk = kkData.find(k => k.id == id);
+      if (!kk) return;
+      
+      let anggotaKeluarga = [];
+      try {
+        anggotaKeluarga = JSON.parse(kk.anggotaKeluarga);
+      } catch (e) {
+        console.error('Error parsing anggotaKeluarga:', e);
+      }
+      
+      let htmlContent = `
+        <div style="margin-bottom: 20px;">
+          <p><strong>Nomor KK:</strong> ${kk.noKK}</p>
+          <p><strong>Alamat:</strong> ${kk.alamat}</p>
+          <p><strong>WhatsApp:</strong> <a href="https://wa.me/${kk.wa}" target="_blank">${kk.wa}</a></p>
+        </div>
+        
+        <h3>Anggota Keluarga:</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">No</th>
+              <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Nama</th>
+              <th style="padding: 10px; border: 1px
+              <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">NIK</th>
+<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Status</th>
+<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Tgl Lahir</th>
+<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Pendidikan</th>
+<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Pekerjaan</th>
+</tr>
+</thead>
+<tbody>
+`;
+
+if (anggotaKeluarga.length === 0) {
+  htmlContent += `<tr><td colspan="7" style="padding: 10px; border: 1px solid #ddd; text-align: center;">Tidak ada data anggota keluarga</td></tr>`;
+} else {
+  anggotaKeluarga.forEach((anggota, index) => {
+    htmlContent += `
+      <tr>
+        <td style="padding: 10px; border: 1px solid #ddd;">${index + 1}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.nama || '-'}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.nik || '-'}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.status || '-'}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.tanggalLahir || '-'}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.pendidikan || '-'}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.pekerjaan || '-'}</td>
+      </tr>
+    `;
+  });
+}
+
+htmlContent += `
+  </tbody>
+</table>
+
+<div style="margin-top: 20px;">
+  <h3>Bantuan yang Diterima:</h3>
+  <table style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">No</th>
+        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Jenis Bantuan</th>
+        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Tanggal</th>
+        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+`;
+
+// Periksa apakah ada data bantuan
+if (!kk.bantuan || kk.bantuan.length === 0) {
+  htmlContent += `<tr><td colspan="4" style="padding: 10px; border: 1px solid #ddd; text-align: center;">Tidak ada data bantuan</td></tr>`;
+} else {
+  try {
+    const bantuan = JSON.parse(kk.bantuan);
+    bantuan.forEach((item, index) => {
+      htmlContent += `
+        <tr>
+          <td style="padding: 10px; border: 1px solid #ddd;">${index + 1}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${item.jenis || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${item.tanggal || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${item.status || '-'}</td>
+        </tr>
+      `;
+    });
+  } catch (e) {
+    htmlContent += `<tr><td colspan="4" style="padding: 10px; border: 1px solid #ddd; text-align: center;">Error memuat data bantuan</td></tr>`;
+    console.error('Error parsing bantuan:', e);
+  }
+}
+
+htmlContent += `
+    </tbody>
+  </table>
+</div>
+
+<div style="margin-top: 20px;">
+  <h3>Informasi Tambahan:</h3>
+  <p>${kk.keterangan || 'Tidak ada keterangan tambahan'}</p>
+</div>
+`;
+
+document.getElementById('kkDetails').innerHTML = htmlContent;
+openModal('detailModal');
+}
+
+// Open modal
+function openModal(id) {
+  document.getElementById(id).style.display = 'block';
+}
+
+// Close modal
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+// Edit KK
+function editKK(id) {
+  // Redirect to edit page
+  window.location.href = `edit_kk.html?id=${id}`;
+}
+
+// Delete KK
+function deleteKK(id) {
+  if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+    showLoading();
+    
+    // In a real application, this would be an API call
+    fetch(`delete_kk.php?id=${id}`, {
+      method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+      hideLoading();
+      if (data.success) {
+        alert('Data berhasil dihapus');
+        loadData(); // Reload data
+      } else {
+        alert('Gagal menghapus data: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error deleting data:', error);
+      hideLoading();
+      alert('Terjadi kesalahan saat menghapus data. Silakan coba lagi nanti.');
+      
+      // For demonstration, simulate successful deletion
+      kkData = kkData.filter(kk => kk.id != id);
+      displayData();
+    });
+  }
+}
+
+// Print details
+function printDetails() {
+  const printWindow = window.open('', '_blank');
+  const content = document.getElementById('kkDetails').innerHTML;
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Detail Kartu Keluarga</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+        }
+        h1 {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        th, td {
+          padding: 8px;
+          border: 1px solid #ddd;
+        }
+        th {
+          background-color: #f2f2f2;
+        }
+        @media print {
+          .no-print {
+            display: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Detail Kartu Keluarga Kurang Mampu</h1>
+      <div class="content">
+        ${content}
+      </div>
+      <div class="no-print" style="margin-top: 20px; text-align: center;">
+        <button onclick="window.print()">Cetak</button>
+        <button onclick="window.close()">Tutup</button>
+      </div>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+}
+
+// Show on map
+function showOnMap() {
+  const searchInput = document.getElementById('searchInput').value;
+  window.location.href = `index.html?search=${encodeURIComponent(searchInput)}`;
+}
+
+// Show loading indicator
+function showLoading() {
+  document.getElementById('loading').style.display = 'flex';
+}
+
+// Hide loading indicator
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+// Load data when page loads
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
