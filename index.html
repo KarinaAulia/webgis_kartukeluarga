@@ -90,12 +90,70 @@
       cursor: pointer;
       border-radius: 3px;
     }
+    .header {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 0;
+      margin-bottom: 10px;
+    }
+    .button-primary {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .button-warning {
+      background-color: #ff9800;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .button-danger {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    .loading-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
 
-<h2 style="text-align: center;">WebGIS Kartu Keluarga Kurang Mampu</h2>
+<div class="header">
+  <h2 style="text-align: center; margin: 0;">WebGIS Kartu Keluarga Kurang Mampu</h2>
+</div>
+
 <div id="map"></div>
+
+<!-- Loading indicator -->
+<div id="loading" class="loading" style="display: none;">
+  <div class="loading-content">
+    <p>Sedang memproses...</p>
+  </div>
+</div>
 
 <!-- Modal for adding/editing KK -->
 <div id="kkModal" class="modal">
@@ -126,14 +184,14 @@
       <div class="form-group">
         <label for="jmlAnggota">Jumlah Anggota Keluarga:</label>
         <input type="number" id="jmlAnggota" min="1" required>
-        <button type="button" id="generateAnggota">Generate Form Anggota</button>
+        <button type="button" id="generateAnggota" class="button-primary">Generate Form Anggota</button>
       </div>
       
       <div id="anggotaContainer"></div>
       
       <div class="action-buttons">
-        <button type="button" id="saveKK">Simpan</button>
-        <button type="button" id="cancelKK">Batal</button>
+        <button type="button" id="saveKK" class="button-primary">Simpan</button>
+        <button type="button" id="cancelKK" class="button-warning">Batal</button>
       </div>
     </form>
   </div>
@@ -145,6 +203,10 @@
     <span class="close">&times;</span>
     <h2>Detail Kartu Keluarga</h2>
     <div id="kkDetails"></div>
+    <div class="action-buttons">
+      <button onclick="printDetails()" class="button-primary">Cetak</button>
+      <button onclick="closeViewModal()" class="button-warning">Tutup</button>
+    </div>
   </div>
 </div>
 
@@ -166,6 +228,7 @@ let currentMarker = null;
 const kkModal = document.getElementById('kkModal');
 const viewModal = document.getElementById('viewModal');
 const closeButtons = document.getElementsByClassName('close');
+const loadingIndicator = document.getElementById('loading');
 
 // Close modal when clicking on X
 for (let i = 0; i < closeButtons.length; i++) {
@@ -185,30 +248,41 @@ window.onclick = function(event) {
   }
 }
 
+// Show loading indicator
+function showLoading() {
+  loadingIndicator.style.display = "flex";
+}
+
+// Hide loading indicator
+function hideLoading() {
+  loadingIndicator.style.display = "none";
+}
+
 // Ambil semua marker dari database saat load
-fetch('get_markers.php')
-  .then(res => res.json())
-  .then(data => {
-    data.forEach(m => {
-      addMarkerFromDB(m);
+function loadMarkers() {
+  showLoading();
+  fetch('get_markers.php')
+    .then(res => res.json())
+    .then(data => {
+      // Clear existing markers
+      markers.forEach(marker => map.removeLayer(marker));
+      markers = [];
+      
+      // Add new markers
+      data.forEach(m => {
+        addMarkerFromDB(m);
+      });
+      hideLoading();
+    })
+    .catch(err => {
+      console.error("Error loading data:", err);
+      alert("Terjadi kesalahan saat mengambil data!");
+      hideLoading();
     });
-  })
-  .catch(err => console.error("Error loading data:", err));
+}
 
-// Tambahkan Circle (contoh area sasaran program bantuan)
-const circle = L.circle([-0.0282, 109.3497], {
-  color: 'red',
-  fillColor: '#f03',
-  fillOpacity: 0.5,
-  radius: 500
-}).addTo(map).bindPopup('Area Sasaran Bantuan');
-
-// Tambahkan Polygon (contoh batas administrasi)
-const polygon = L.polygon([
-  [-0.01815, 109.33978],
-  [-0.02176, 109.29635],
-  [-0.04510, 109.31970]
-]).addTo(map).bindPopup('Batas Administrasi');
+// Load markers on page load
+loadMarkers();
 
 // Klik di map untuk tambah marker
 map.on('click', function(e) {
@@ -371,6 +445,7 @@ document.getElementById('saveKK').addEventListener('click', function() {
     url = 'update_marker.php';
   }
   
+  showLoading();
   fetch(url, {
     method: 'POST',
     body: formData
@@ -381,32 +456,17 @@ document.getElementById('saveKK').addEventListener('click', function() {
       alert("Data berhasil disimpan!");
       kkModal.style.display = "none";
       
-      if (markerId) {
-        // Update marker on map
-        const marker = markers.find(m => m.data.id === parseInt(markerId));
-        if (marker) {
-          map.removeLayer(marker);
-          markers = markers.filter(m => m !== marker);
-        }
-      }
-      
-      // Add new marker to map
-      if (markerId) {
-        data.id = parseInt(markerId);
-      }
-      addMarker(parseFloat(lat), parseFloat(lng), data, false);
-      
-      // If adding new, reload all markers to get the DB-assigned ID
-      if (!markerId) {
-        location.reload();
-      }
+      // Reload markers from database to ensure all data is up to date
+      loadMarkers();
     } else {
       alert("Gagal menyimpan data: " + res);
     }
+    hideLoading();
   })
   .catch(err => {
     console.error("Error saving data:", err);
     alert("Terjadi kesalahan saat menyimpan data!");
+    hideLoading();
   });
 });
 
@@ -475,6 +535,7 @@ function updateMarkerPosition(id, lat, lng) {
   formData.append('lat', lat);
   formData.append('lng', lng);
   
+  showLoading();
   fetch('update_position.php', {
     method: 'POST',
     body: formData
@@ -484,10 +545,12 @@ function updateMarkerPosition(id, lat, lng) {
     if (res !== "success") {
       alert("Gagal memperbarui posisi marker!");
     }
+    hideLoading();
   })
   .catch(err => {
     console.error("Error updating position:", err);
     alert("Terjadi kesalahan saat memperbarui posisi!");
+    hideLoading();
   });
 }
 
@@ -503,9 +566,9 @@ function getPopupContent(marker) {
       <p>Jumlah Anggota: ${data.anggotaKeluarga.length}</p>
       
       <div class="popup-buttons">
-        <button class="view-details-button" onclick="viewDetails(${data.id})">Lihat Detail</button>
-        <button onclick="editMarker(${data.id})">Edit</button>
-        <button onclick="deleteMarker(${data.id})">Hapus</button>
+        <button class="view-details-button" onclick="viewDetails('${data.id}')">Lihat Detail</button>
+        <button class="button-warning" onclick="editMarker('${data.id}')">Edit</button>
+        <button class="button-danger" onclick="deleteMarker('${data.id}')">Hapus</button>
       </div>
     </div>
   `;
@@ -520,7 +583,7 @@ function viewDetails(id) {
   let htmlContent = `
     <h3>Kartu Keluarga: ${data.noKK}</h3>
     <p>Alamat: ${data.alamat}</p>
-    <p>WhatsApp: ${data.wa}</p>
+    <p>WhatsApp: <a href="https://wa.me/${data.wa}" target="_blank">${data.wa}</a></p>
     <h4>Anggota Keluarga:</h4>
     <table>
       <thead>
@@ -542,7 +605,7 @@ function viewDetails(id) {
   data.anggotaKeluarga.forEach((anggota, index) => {
     // Format the date
     let tanggalLahir = anggota.tanggal_lahir;
-    if (tanggalLahir.includes('-')) {
+    if (tanggalLahir && tanggalLahir.includes('-')) {
       const [year, month, day] = tanggalLahir.split('-');
       tanggalLahir = `${day}/${month}/${year}`;
     }
@@ -550,14 +613,14 @@ function viewDetails(id) {
     htmlContent += `
       <tr>
         <td>${index + 1}</td>
-        <td>${anggota.nama}</td>
-        <td>${anggota.nik}</td>
-        <td>${anggota.jenis_kelamin}</td>
-        <td>${anggota.agama}</td>
-        <td>${anggota.status}</td>
-        <td>${anggota.pendidikan}</td>
-        <td>${anggota.tempat_lahir}</td>
-        <td>${tanggalLahir}</td>
+        <td>${anggota.nama || '-'}</td>
+        <td>${anggota.nik || '-'}</td>
+        <td>${anggota.jenis_kelamin || '-'}</td>
+        <td>${anggota.agama || '-'}</td>
+        <td>${anggota.status || '-'}</td>
+        <td>${anggota.pendidikan || '-'}</td>
+        <td>${anggota.tempat_lahir || '-'}</td>
+        <td>${tanggalLahir || '-'}</td>
       </tr>
     `;
   });
@@ -594,14 +657,14 @@ function editMarker(id) {
   
   // Set values for family members
   data.anggotaKeluarga.forEach((anggota, index) => {
-    document.getElementById(`nama_${index}`).value = anggota.nama;
-    document.getElementById(`nik_${index}`).value = anggota.nik;
-    document.getElementById(`jenis_kelamin_${index}`).value = anggota.jenis_kelamin;
-    document.getElementById(`agama_${index}`).value = anggota.agama;
-    document.getElementById(`status_${index}`).value = anggota.status;
-    document.getElementById(`pendidikan_${index}`).value = anggota.pendidikan;
-    document.getElementById(`tempat_lahir_${index}`).value = anggota.tempat_lahir;
-    document.getElementById(`tanggal_lahir_${index}`).value = anggota.tanggal_lahir;
+    document.getElementById(`nama_${index}`).value = anggota.nama || '';
+    document.getElementById(`nik_${index}`).value = anggota.nik || '';
+    document.getElementById(`jenis_kelamin_${index}`).value = anggota.jenis_kelamin || 'Laki-laki';
+    document.getElementById(`agama_${index}`).value = anggota.agama || 'Islam';
+    document.getElementById(`status_${index}`).value = anggota.status || 'Belum Kawin';
+    document.getElementById(`pendidikan_${index}`).value = anggota.pendidikan || 'Tidak Sekolah';
+    document.getElementById(`tempat_lahir_${index}`).value = anggota.tempat_lahir || '';
+    document.getElementById(`tanggal_lahir_${index}`).value = anggota.tanggal_lahir || '';
   });
   
   // Show modal
@@ -618,6 +681,7 @@ function deleteMarker(id) {
   const formData = new FormData();
   formData.append('id', id);
   
+  showLoading();
   fetch('delete_marker.php', {
     method: 'POST',
     body: formData
@@ -631,10 +695,83 @@ function deleteMarker(id) {
     } else {
       alert("Gagal menghapus data!");
     }
+    hideLoading();
   })
   .catch(err => {
     console.error("Error deleting marker:", err);
     alert("Terjadi kesalahan saat menghapus data!");
+    hideLoading();
+  });
+}
+
+// Function to close view modal
+function closeViewModal() {
+  viewModal.style.display = "none";
+}
+
+// Function to print details
+function printDetails() {
+  const detailsContent = document.getElementById('kkDetails').innerHTML;
+  const printWindow = window.open('', '_blank');
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Detail Kartu Keluarga</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        h3, h4 { margin-top: 20px; }
+        @media print {
+          .no-print { display: none; }
+          a { text-decoration: none; color: black; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()">Cetak</button>
+        <button onclick="window.close()">Tutup</button>
+      </div>
+      
+      <h2>Detail Kartu Keluarga</h2>
+      ${detailsContent}
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+}
+
+// Function to update position in database
+function update_position() {
+  const formData = new FormData();
+  formData.append('id', id);
+  formData.append('lat', lat);
+  formData.append('lng', lng);
+  
+  showLoading();
+  fetch('update_position.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.text())
+  .then(res => {
+    if (res === "success") {
+      alert("Posisi berhasil diperbarui!");
+    } else {
+      alert("Gagal memperbarui posisi!");
+    }
+    hideLoading();
+  })
+  .catch(err => {
+    console.error("Error updating position:", err);
+    alert("Terjadi kesalahan saat memperbarui posisi!");
+    hideLoading();
   });
 }
 
@@ -642,6 +779,8 @@ function deleteMarker(id) {
 window.viewDetails = viewDetails;
 window.editMarker = editMarker;
 window.deleteMarker = deleteMarker;
+window.closeViewModal = closeViewModal;
+window.printDetails = printDetails;
 </script>
 
 </body>
