@@ -348,6 +348,53 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal Edit KK -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('editModal')">&times;</span>
+    <h2>Edit Kartu Keluarga</h2>
+    <form id="editKKForm">
+      <input type="hidden" id="editKKId">
+      
+      <div class="form-group">
+        <label for="editNoKK">Nomor KK:</label>
+        <input type="text" id="editNoKK" class="form-control" required pattern="[0-9]{16}" title="Nomor KK harus berisi 16 digit angka">
+      </div>
+      
+      <div class="form-group">
+        <label for="editAlamat">Alamat:</label>
+        <textarea id="editAlamat" class="form-control" required></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="editWA">Nomor WhatsApp:</label>
+        <input type="text" id="editWA" class="form-control" required pattern="[0-9]{10,15}" title="Nomor WhatsApp harus berisi 10-15 digit angka">
+      </div>
+
+      <div class="form-group">
+        <label for="jmlAnggota">Jumlah Anggota Keluarga:</label>
+        <input type="number" id="jmlAnggota" min="1" required>
+        <button type="button" id="generateAnggota" class="button-primary">Generate Form Anggota</button>
+      </div>
+
+      <div id="anggotaContainer"></div>
+      
+      <div class="action-buttons">
+        <button type="button" id="saveKK" class="button-primary">Simpan</button>
+        <button type="button" id="cancelKK" class="button-warning">Batal</button>
+      </div>
+    
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <button type="submit" class="btn">Simpan</button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
   
   <!-- Loading indicator -->
   <div id="loading" class="loading" style="display: none;">
@@ -517,113 +564,81 @@
       displayData();
     }
     
-    // View KK details
-    function viewDetails(id) {
-      const kk = kkData.find(k => k.id == id);
-      if (!kk) return;
-      
-      let anggotaKeluarga = [];
-      try {
-        anggotaKeluarga = JSON.parse(kk.anggotaKeluarga);
-      } catch (e) {
-        console.error('Error parsing anggotaKeluarga:', e);
-      }
-      
-      let htmlContent = `
-        <div style="margin-bottom: 20px;">
-          <p><strong>Nomor KK:</strong> ${kk.noKK}</p>
-          <p><strong>Alamat:</strong> ${kk.alamat}</p>
-          <p><strong>WhatsApp:</strong> <a href="https://wa.me/${kk.wa}" target="_blank">${kk.wa}</a></p>
-        </div>
-        
-        <h3>Anggota Keluarga:</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr>
-              <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">No</th>
-              <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Nama</th>
-              <th style="padding: 10px; border: 1px
-              <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">NIK</th>
-<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Status</th>
-<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Tgl Lahir</th>
-<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Pendidikan</th>
-<th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Pekerjaan</th>
-</tr>
-</thead>
-<tbody>
-`;
+  function viewDetails(id) {
+  const kk = kkData.find(k => k.id == id);
+  if (!kk) return;
 
-if (anggotaKeluarga.length === 0) {
-  htmlContent += `<tr><td colspan="7" style="padding: 10px; border: 1px solid #ddd; text-align: center;">Tidak ada data anggota keluarga</td></tr>`;
-} else {
-  anggotaKeluarga.forEach((anggota, index) => {
+  let anggotaKeluarga = [];
+  try {
+    anggotaKeluarga = JSON.parse(kk.anggotaKeluarga);
+  } catch (e) {
+    console.error('Error parsing anggotaKeluarga:', e);
+  }
+
+  let htmlContent = `
+    <div style="margin-bottom: 20px;">
+      <p><strong>Nomor KK:</strong> ${kk.noKK}</p>
+      <p><strong>Alamat:</strong> ${kk.alamat}</p>
+      <p><strong>WhatsApp:</strong> <a href="https://wa.me/${kk.wa}" target="_blank">${kk.wa}</a></p>
+    </div>
+
+    <h3>Anggota Keluarga:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">No</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Nama</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">NIK</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Jenis Kelamin</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Agama</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Status</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Pendidikan</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Tempat Lahir</th>
+          <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Tanggal Lahir</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  if (anggotaKeluarga.length === 0) {
     htmlContent += `
       <tr>
-        <td style="padding: 10px; border: 1px solid #ddd;">${index + 1}</td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.nama || '-'}</td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.nik || '-'}</td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.status || '-'}</td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.tanggalLahir || '-'}</td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.pendidikan || '-'}</td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${anggota.pekerjaan || '-'}</td>
+        <td colspan="9" style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+          Tidak ada data anggota keluarga
+        </td>
       </tr>
     `;
-  });
-}
+  } else {
+    anggotaKeluarga.forEach((anggota, index) => {
+      let tanggalLahir = anggota.tanggal_lahir || '-';
+      if (tanggalLahir && tanggalLahir.includes('-')) {
+        const [year, month, day] = tanggalLahir.split('-');
+        tanggalLahir = `${day}/${month}/${year}`;
+      }
 
-htmlContent += `
-  </tbody>
-</table>
-
-<div style="margin-top: 20px;">
-  <h3>Bantuan yang Diterima:</h3>
-  <table style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr>
-        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">No</th>
-        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Jenis Bantuan</th>
-        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Tanggal</th>
-        <th style="padding: 10px; border: 1px solid #ddd; background-color: #f5f5f5;">Status</th>
-      </tr>
-    </thead>
-    <tbody>
-`;
-
-// Periksa apakah ada data bantuan
-if (!kk.bantuan || kk.bantuan.length === 0) {
-  htmlContent += `<tr><td colspan="4" style="padding: 10px; border: 1px solid #ddd; text-align: center;">Tidak ada data bantuan</td></tr>`;
-} else {
-  try {
-    const bantuan = JSON.parse(kk.bantuan);
-    bantuan.forEach((item, index) => {
       htmlContent += `
         <tr>
           <td style="padding: 10px; border: 1px solid #ddd;">${index + 1}</td>
-          <td style="padding: 10px; border: 1px solid #ddd;">${item.jenis || '-'}</td>
-          <td style="padding: 10px; border: 1px solid #ddd;">${item.tanggal || '-'}</td>
-          <td style="padding: 10px; border: 1px solid #ddd;">${item.status || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${anggota.nama || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${anggota.nik || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${anggota.jenis_kelamin || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${anggota.agama || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${anggota.status || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${anggota.pendidikan || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${anggota.tempat_lahir || '-'}</td>
+          <td style="padding: 10px; border: 1px solid #ddd;">${tanggalLahir}</td>
         </tr>
       `;
     });
-  } catch (e) {
-    htmlContent += `<tr><td colspan="4" style="padding: 10px; border: 1px solid #ddd; text-align: center;">Error memuat data bantuan</td></tr>`;
-    console.error('Error parsing bantuan:', e);
   }
-}
 
-htmlContent += `
-    </tbody>
-  </table>
-</div>
+  htmlContent += `
+      </tbody>
+    </table>
+  `;
 
-<div style="margin-top: 20px;">
-  <h3>Informasi Tambahan:</h3>
-  <p>${kk.keterangan || 'Tidak ada keterangan tambahan'}</p>
-</div>
-`;
-
-document.getElementById('kkDetails').innerHTML = htmlContent;
-openModal('detailModal');
+  document.getElementById('kkDetails').innerHTML = htmlContent;
+  openModal('detailModal');
 }
 
 // Open modal
@@ -636,10 +651,177 @@ function closeModal(id) {
   document.getElementById(id).style.display = 'none';
 }
 
+// Generate form anggota keluarga
+document.getElementById('generateAnggota').addEventListener('click', function() {
+  const jmlAnggota = parseInt(document.getElementById('jmlAnggota').value);
+  const container = document.getElementById('anggotaContainer');
+  
+  if (isNaN(jmlAnggota) || jmlAnggota < 1) {
+    alert('Jumlah anggota keluarga harus minimal 1');
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  for (let i = 0; i < jmlAnggota; i++) {
+    const div = document.createElement('div');
+    div.className = 'family-member';
+    div.innerHTML = `
+      <h3>Anggota Keluarga #${i+1}</h3>
+      
+      <div class="form-group">
+        <label for="nama_${i}">Nama Lengkap:</label>
+        <input type="text" id="nama_${i}" name="nama[]" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="nik_${i}">NIK:</label>
+        <input type="text" id="nik_${i}" name="nik[]" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="jenis_kelamin_${i}">Jenis Kelamin:</label>
+        <select id="jenis_kelamin_${i}" name="jenis_kelamin[]" required>
+          <option value="Laki-laki">Laki-laki</option>
+          <option value="Perempuan">Perempuan</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="agama_${i}">Agama:</label>
+        <select id="agama_${i}" name="agama[]" required>
+          <option value="Islam">Islam</option>
+          <option value="Katolik">Katolik</option>
+          <option value="Kristen">Kristen</option>
+          <option value="Buddha">Buddha</option>
+          <option value="Hindu">Hindu</option>
+          <option value="Konghucu">Konghucu</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="status_${i}">Status:</label>
+        <select id="status_${i}" name="status[]" required>
+          <option value="Kawin">Kawin</option>
+          <option value="Belum Kawin">Belum Kawin</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="pendidikan_${i}">Pendidikan Terakhir:</label>
+        <select id="pendidikan_${i}" name="pendidikan[]" required>
+          <option value="Tidak Sekolah">Tidak Sekolah</option>
+          <option value="SD">SD</option>
+          <option value="SMP">SMP</option>
+          <option value="SMA/SMK">SMA/SMK</option>
+          <option value="D1">D1</option>
+          <option value="D2">D2</option>
+          <option value="D3">D3</option>
+          <option value="S1">S1</option>
+          <option value="S2">S2</option>
+          <option value="S3">S3</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="tempat_lahir_${i}">Tempat Lahir:</label>
+        <input type="text" id="tempat_lahir_${i}" name="tempat_lahir[]" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="tanggal_lahir_${i}">Tanggal Lahir:</label>
+        <input type="date" id="tanggal_lahir_${i}" name="tanggal_lahir[]" required>
+      </div>
+    `;
+    
+    container.appendChild(div);
+  }
+});
+
 // Edit KK
 function editKK(id) {
-  // Redirect to edit page
-  window.location.href = `edit_kk.html?id=${id}`;
+  showLoading();
+  
+  // Find the KK data
+  const kk = kkData.find(k => k.id == id);
+  if (!kk) {
+    hideLoading();
+    alert('Data tidak ditemukan!');
+    return;
+  }
+  
+  // Open edit modal instead of redirecting
+  document.getElementById('editKKId').value = kk.id;
+  document.getElementById('editNoKK').value = kk.noKK;
+  document.getElementById('editAlamat').value = kk.alamat;
+  document.getElementById('editWA').value = kk.wa;
+  
+
+  
+  openModal('editModal');
+  hideLoading();
+}
+
+// Submit edit form
+document.getElementById('editKKForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  saveEditKK();
+});
+
+
+
+// Save edited KK data
+function saveEditKK() {
+  const id = document.getElementById('editKKId').value;
+  const noKK = document.getElementById('editNoKK').value;
+  const alamat = document.getElementById('editAlamat').value;
+  const wa = document.getElementById('editWA').value;
+  
+  if (!noKK || !alamat || !wa) {
+    alert('Mohon lengkapi semua data yang diperlukan!');
+    return;
+  }
+  
+  showLoading();
+  
+  // Create form data object
+  const formData = new FormData();
+  formData.append('id', id);
+  formData.append('noKK', noKK);
+  formData.append('alamat', alamat);
+  formData.append('wa', wa);
+  
+  // In a real application, this would be an API call
+  fetch('update_kk.php', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    hideLoading();
+    if (data.success) {
+      alert('Data berhasil diperbarui');
+      closeModal('editModal');
+      loadData(); // Reload data
+    } else {
+      alert('Gagal memperbarui data: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error updating data:', error);
+    hideLoading();
+    alert('Terjadi kesalahan saat memperbarui data. Silakan coba lagi nanti.');
+    
+    // For demonstration, simulate successful update
+    const kkIndex = kkData.findIndex(kk => kk.id == id);
+    if (kkIndex !== -1) {
+      kkData[kkIndex].noKK = noKK;
+      kkData[kkIndex].alamat = alamat;
+      kkData[kkIndex].wa = wa;
+      displayData();
+      closeModal('editModal');
+    }
+  });
 }
 
 // Delete KK
@@ -649,7 +831,7 @@ function deleteKK(id) {
     
     // In a real application, this would be an API call
     fetch(`delete_kk.php?id=${id}`, {
-      method: 'DELETE'
+      method: 'POST'
     })
     .then(response => response.json())
     .then(data => {
