@@ -472,8 +472,6 @@
             <td>
               <div class="action-buttons">
                 <button class="btn btn-sm" onclick="viewDetails(${kk.id})">Detail</button>
-                <button class="btn btn-warning btn-sm" onclick="editKK(${kk.id})">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteKK(${kk.id})">Hapus</button>
               </div>
             </td>
           `;
@@ -733,122 +731,6 @@ document.getElementById('generateAnggota').addEventListener('click', function() 
   }
 });
 
-// Edit KK
-function editKK(id) {
-  showLoading();
-  
-  // Find the KK data
-  const kk = kkData.find(k => k.id == id);
-  if (!kk) {
-    hideLoading();
-    alert('Data tidak ditemukan!');
-    return;
-  }
-  
-  // Open edit modal instead of redirecting
-  document.getElementById('editKKId').value = kk.id;
-  document.getElementById('editNoKK').value = kk.noKK;
-  document.getElementById('editAlamat').value = kk.alamat;
-  document.getElementById('editWA').value = kk.wa;
-  
-
-  
-  openModal('editModal');
-  hideLoading();
-}
-
-// Submit edit form
-document.getElementById('editKKForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  saveEditKK();
-});
-
-
-
-// Save edited KK data
-function saveEditKK() {
-  const id = document.getElementById('editKKId').value;
-  const noKK = document.getElementById('editNoKK').value;
-  const alamat = document.getElementById('editAlamat').value;
-  const wa = document.getElementById('editWA').value;
-  
-  if (!noKK || !alamat || !wa) {
-    alert('Mohon lengkapi semua data yang diperlukan!');
-    return;
-  }
-  
-  showLoading();
-  
-  // Create form data object
-  const formData = new FormData();
-  formData.append('id', id);
-  formData.append('noKK', noKK);
-  formData.append('alamat', alamat);
-  formData.append('wa', wa);
-  
-  // In a real application, this would be an API call
-  fetch('update_kk.php', {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => response.json())
-  .then(data => {
-    hideLoading();
-    if (data.success) {
-      alert('Data berhasil diperbarui');
-      closeModal('editModal');
-      loadData(); // Reload data
-    } else {
-      alert('Gagal memperbarui data: ' + data.message);
-    }
-  })
-  .catch(error => {
-    console.error('Error updating data:', error);
-    hideLoading();
-    alert('Terjadi kesalahan saat memperbarui data. Silakan coba lagi nanti.');
-    
-    // For demonstration, simulate successful update
-    const kkIndex = kkData.findIndex(kk => kk.id == id);
-    if (kkIndex !== -1) {
-      kkData[kkIndex].noKK = noKK;
-      kkData[kkIndex].alamat = alamat;
-      kkData[kkIndex].wa = wa;
-      displayData();
-      closeModal('editModal');
-    }
-  });
-}
-
-// Delete KK
-function deleteKK(id) {
-  if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-    showLoading();
-    
-    // In a real application, this would be an API call
-    fetch(`delete_kk.php?id=${id}`, {
-      method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-      hideLoading();
-      if (data.success) {
-        alert('Data berhasil dihapus');
-        loadData(); // Reload data
-      } else {
-        alert('Gagal menghapus data: ' + data.message);
-      }
-    })
-    .catch(error => {
-      console.error('Error deleting data:', error);
-      hideLoading();
-      alert('Terjadi kesalahan saat menghapus data. Silakan coba lagi nanti.');
-      
-      // For demonstration, simulate successful deletion
-      kkData = kkData.filter(kk => kk.id != id);
-      displayData();
-    });
-  }
-}
 
 // Print details
 function printDetails() {
