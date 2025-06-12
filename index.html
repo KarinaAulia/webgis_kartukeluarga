@@ -473,6 +473,9 @@ document.getElementById('saveKK').addEventListener('click', function() {
 // Cancel KK form
 document.getElementById('cancelKK').addEventListener('click', function() {
   kkModal.style.display = "none";
+  if (currentMarker && currentMarker.getPopup()) {
+    currentMarker.closePopup();
+  }
 });
 
 // Function to add marker from database
@@ -508,8 +511,9 @@ function addMarker(lat, lng, data, saveToDB) {
   
   marker.bindPopup(getPopupContent(marker));
   
+  
   marker.bindTooltip(`KK: ${data.noKK}`, {
-    permanent: true,
+    permanent: false,
     direction: 'top',
     offset: [0, -10],
     className: 'marker-label'
@@ -578,6 +582,7 @@ function getPopupContent(marker) {
 function viewDetails(id) {
   const marker = markers.find(m => m.data.id === id);
   if (!marker) return;
+  currentMarker = marker;
   
   const data = marker.data;
   let htmlContent = `
@@ -637,6 +642,7 @@ function viewDetails(id) {
 // Function to edit marker
 function editMarker(id) {
   const marker = markers.find(m => m.data.id === id);
+  currentMarker = marker;
   if (!marker) return;
   
   const data = marker.data;
@@ -707,6 +713,9 @@ function deleteMarker(id) {
 // Function to close view modal
 function closeViewModal() {
   viewModal.style.display = "none";
+  if (currentMarker && currentMarker.getPopup()) {
+    currentMarker.closePopup();
+  }
 }
 
 // Function to print details
