@@ -44,6 +44,50 @@
       gap: 30px;
       margin-top: 30px;
     }
+
+    .about-section {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      padding: 30px 20px;
+      margin: 40px 0;
+    }
+
+    .about-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+
+    .about-card {
+      background: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 20px 10px;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .about-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.13);
+    }
+
+    .about-name {
+      font-size: 1.15em;
+      font-weight: 600;
+      color: #4CAF50;
+      margin-bottom: 8px;
+    }
+
+    .about-nim {
+      font-size: 0.98em;
+      color: #555;
+    }
+
+
     
     .stats-cards {
       display: grid;
@@ -152,6 +196,10 @@
       .stats-cards {
         grid-template-columns: 1fr;
       }
+
+      .about-cards {
+        grid-template-columns: 1fr;
+      }
       
       .action-buttons {
         grid-template-columns: 1fr;
@@ -187,21 +235,38 @@
           
         </div>
       </div>
+      <div class="about-section">
+        <h2 class="section-title">About Us - Kelompok 3</h2>
+        <div class="about-cards">
+          <div class="about-card">
+            <div class="about-name">Karina Aulia</div>
+            <div class="about-nim">H1101231001</div>
+          </div>
+          <div class="about-card">
+            <div class="about-name">Aura Rizkiatul Arsyi</div>
+            <div class="about-nim">H1101231003</div>
+          </div>
+          <div class="about-card">
+            <div class="about-name">Shelina Disty Fibriani</div>
+            <div class="about-nim">H1101231005</div>
+          </div>
+          <div class="about-card">
+            <div class="about-name">Inna Henita Cahya Nurani</div>
+            <div class="about-nim">H1101231009</div>
+          </div>
+          <div class="about-card">
+            <div class="about-name">Gisela Jelia</div>
+            <div class="about-nim">H1101231041</div>
+          </div>
+        </div>
+      </div>
+
+
       
   
   <div class="footer">
     <div class="container">
       <p>© 2025 WebGIS Kartu Keluarga Kurang Mampu. Hak Cipta Dilindungi.</p>
-      <div style="margin-top: 10px;">
-      <strong>About Us - Kelompok 3:</strong>
-      <ul style="list-style: none; padding-left: 0; margin: 8px 0 0 0; text-align: center;">
-        <li>1. Karina Aulia (H1101231001)</li>
-        <li>2. Aura Rizkiatul Arsyi (H1101231003)</li>
-        <li>3. Shelina Disty Fibriani (H1101231005)</li>
-        <li>4. Inna Henita Cahya Nurani (H1101231009)</li>
-        <li>5. Gisela Jelia (H1101231041)</li>
-      </ul>
-    </div>
     </div>
   </div>
   
